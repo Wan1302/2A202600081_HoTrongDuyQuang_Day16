@@ -39,14 +39,14 @@ This repository provides a scaffold for building and evaluating a Reflexion Agen
 
 ## 5. Run Commands for Your Current Model and Data
 
-### 4.1 Set up the environment
+### 5.1 Set up the environment
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 ```
 
-### 4.2 Make sure your OpenAI API key is available
+### 5.2 Make sure your OpenAI API key is available
 ```powershell
 $env:OPENAI_API_KEY="your-api-key-here"
 ```
@@ -56,17 +56,17 @@ Or put it into `.env`:
 OPENAI_API_KEY="your-api-key-here"
 ```
 
-### 4.3 Run the benchmark on your current dataset
+### 5.3 Run the benchmark on your current dataset
 ```powershell
 python run_benchmark.py --dataset data/hotpot.json --out-dir outputs\sample_run --model gpt-4o-mini
 ```
 
-### 4.4 Run the autograder
+### 5.4 Run the autograder
 ```powershell
 python autograde.py --report-path outputs\sample_run\report.json
 ```
 
-### 4.5 Optional smoke test with mock mode
+### 5.5 Optional smoke test with mock mode
 ```powershell
 python run_benchmark.py --dataset data/hotpot.json --out-dir outputs\sample_run --model gpt-4o-mini --use-mock
 python autograde.py --report-path outputs\sample_run\report.json
@@ -78,28 +78,28 @@ python autograde.py --report-path outputs\sample_run\report.json
 
 ## 7. Bonus Features Implemented
 
-### 6.1 `structured_evaluator`
+### 7.1 `structured_evaluator`
 - The evaluator returns a structured JSON object instead of free-form text.
 - This makes grading and debugging more reliable because the score, reason, missing evidence, and spurious claims are explicitly separated.
 - Implemented in `src/reflexion_lab/runtime.py` and supported by `src/reflexion_lab/schemas.py`.
 
-### 6.2 `reflection_memory`
+### 7.2 `reflection_memory`
 - Reflexion stores the previous lesson/strategy in memory and feeds it back into the next attempt.
 - This helps the agent avoid repeating the same mistake and is the core idea behind the Reflexion loop.
 - Implemented in `src/reflexion_lab/agents.py` and passed into the actor prompt in `src/reflexion_lab/runtime.py`.
 
-### 6.3 `adaptive_max_attempts`
+### 7.3 `adaptive_max_attempts`
 - The Reflexion budget is no longer fixed for every sample.
 - Easy questions usually get fewer attempts, while harder or longer-context questions can use more attempts up to the ceiling.
 - This reduces wasted tokens on easy samples and looks more principled during code review.
 - Implemented in `src/reflexion_lab/agents.py` through `_adaptive_attempt_budget(...)`.
 
-### 6.4 `benchmark_report_json`
+### 7.4 `benchmark_report_json`
 - The benchmark generates a machine-readable `report.json` and a human-readable `report.md`.
 - The JSON report includes metadata, summary metrics, failure breakdown, examples, extensions, and discussion.
 - Implemented in `src/reflexion_lab/reporting.py`.
 
-### 6.5 Why these bonuses are useful
+### 7.5 Why these bonuses are useful
 - They are not only for autograding.
 - They also make the code easier to explain, easier to review, and easier to extend later.
 - In particular, `adaptive_max_attempts` and `reflection_memory` show that the agent is doing more than a one-shot answer loop.
