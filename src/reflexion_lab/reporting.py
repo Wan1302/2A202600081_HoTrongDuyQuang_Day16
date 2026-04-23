@@ -17,14 +17,43 @@ def summarize(records: list[RunRecord]) -> dict:
     return summary
 
 def failure_breakdown(records: list[RunRecord]) -> dict:
-    grouped: dict[str, Counter] = defaultdict(Counter)
+    overall = Counter()
+    by_agent: dict[str, Counter] = defaultdict(Counter)
+    by_difficulty: dict[str, Counter] = defaultdict(Counter)
     for record in records:
-        grouped[record.agent_type][record.failure_mode] += 1
-    return {agent: dict(counter) for agent, counter in grouped.items()}
+        overall[record.failure_mode] += 1
+        by_agent[record.agent_type][record.failure_mode] += 1
+        difficulty = "unknown"
+        if record.qid:
+            if record.qid.endswith("1") or record.qid.endswith("3") or record.qid.endswith("5"):
+                difficulty = "easy"
+            elif record.qid.endswith("2") or record.qid.endswith("4") or record.qid.endswith("7"):
+                difficulty = "medium"
+            else:
+                difficulty = "hard"
+        by_difficulty[difficulty][record.failure_mode] += 1
+    return {
+        "overall": dict(overall),
+        "by_agent": {agent: dict(counter) for agent, counter in by_agent.items()},
+        "by_difficulty": {difficulty: dict(counter) for difficulty, counter in by_difficulty.items()},
+    }
 
-def build_report(records: list[RunRecord], dataset_name: str, mode: str = "mock") -> ReportPayload:
-    examples = [{"qid": r.qid, "agent_type": r.agent_type, "gold_answer": r.gold_answer, "predicted_answer": r.predicted_answer, "is_correct": r.is_correct, "attempts": r.attempts, "failure_mode": r.failure_mode, "reflection_count": len(r.reflections)} for r in records]
-    return ReportPayload(meta={"dataset": dataset_name, "mode": mode, "num_records": len(records), "agents": sorted({r.agent_type for r in records})}, summary=summarize(records), failure_modes=failure_breakdown(records), examples=examples, extensions=["structured_evaluator", "reflection_memory", "benchmark_report_json", "mock_mode_for_autograding"], discussion="Reflexion helps when the first attempt stops after the first hop or drifts to a wrong second-hop entity. The tradeoff is higher attempts, token cost, and latency. In a real report, students should explain when the reflection memory was useful, which failure modes remained, and whether evaluator quality limited gains.")
+def build_report(records: list[RunRecord], dataset_name: str, mode: str = "mock", model: str | None = None, extensions: list[str] | None = None, discussion: str | None = None) -> ReportPayload:
+    examples = [{"qid": r.qid, "agent_type": r.agent_type, "gold_answer": r.gold_answer, "predicted_answer": r.predicted_answer, "is_correct": r.is_correct, "attempt_budget": r.attempt_budget, "attempts": r.attempts, "failure_mode": r.failure_mode, "reflection_count": len(r.reflections)} for r in records]
+    default_extensions = ["structured_evaluator", "reflection_memory", "adaptive_max_attempts", "benchmark_report_json"]
+    if extensions is None:
+        extensions = default_extensions
+    if discussion is None:
+        discussion = (
+            "Reflexion helps when the first attempt stops after the first hop or drifts to a wrong second-hop entity. "
+            "The tradeoff is higher attempts, token cost, and latency. In a real report, students should explain when "
+            "the reflection memory was useful, which failure modes remained, and whether evaluator quality limited gains "
+            "or caused the agent to overcorrect on later attempts."
+        )
+    meta = {"dataset": dataset_name, "mode": mode, "num_records": len(records), "agents": sorted({r.agent_type for r in records})}
+    if model is not None:
+        meta["model"] = model
+    return ReportPayload(meta=meta, summary=summarize(records), failure_modes=failure_breakdown(records), examples=examples, extensions=extensions, discussion=discussion)
 
 def save_report(report: ReportPayload, out_dir: str | Path) -> tuple[Path, Path]:
     out_dir = Path(out_dir)

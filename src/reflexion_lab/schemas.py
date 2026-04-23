@@ -14,12 +14,18 @@ class QAExample(BaseModel):
     context: list[ContextChunk]
 
 class JudgeResult(BaseModel):
-    # TODO: Học viên định nghĩa các trường cần thiết cho kết quả đánh giá (score, reason, ...)
-    pass
+    score: int
+    reason: str
+    missing_evidence: list[str] = Field(default_factory=list)
+    spurious_claims: list[str] = Field(default_factory=list)
+    correct_answer: Optional[str] = None
 
 class ReflectionEntry(BaseModel):
-    # TODO: Học viên định nghĩa các trường cần thiết cho một mục reflection (attempt_id, lesson, strategy, ...)
-    pass
+    attempt_id: int
+    failure_reason: str
+    lesson: str
+    next_strategy: str
+    notes: Optional[str] = None
 
 class AttemptTrace(BaseModel):
     attempt_id: int
@@ -35,6 +41,7 @@ class RunRecord(BaseModel):
     question: str
     gold_answer: str
     agent_type: Literal["react", "reflexion"]
+    attempt_budget: int = 0
     predicted_answer: str
     is_correct: bool
     attempts: int
